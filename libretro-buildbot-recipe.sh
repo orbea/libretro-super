@@ -219,6 +219,7 @@ fi
 
 # ----- use to keep track of built cores -----
 CORES_BUILT=NO
+BUILT_CORES=""
 
 FORCE_ORIG=$FORCE
 JOBS_ORIG=$JOBS
@@ -389,7 +390,7 @@ build_libretro_generic_makefile() {
 			"$@" 2>&1 | tee -a "$LOGFILE"
 		fi
 
-		if [ "${MAKEPORTABLE}" == "YES" ]; then
+		if [ "${MAKEPORTABLE}" = "YES" ]; then
 			echo "BUILD CMD $WORK/retrolink.sh ${OUT}/${CORENAM}" 2>&1 | tee -a "$LOGFILE"
 			$WORK/retrolink.sh ${OUT}/${CORENAM} 2>&1 | tee -a "$LOGFILE"
 		fi
@@ -405,6 +406,7 @@ build_libretro_generic_makefile() {
 		cp -v "${OUT}/${ORIGNAM}" "${OUTPUT}"
 
 		RET=$?
+		[ "$RET" = "0" ] && BUILT_CORES="${BUILT_CORES} ${CORENAM}"
 		buildbot_handle_message "$RET" "$ENTRY_ID" "$core" "$jobid" "$LOGFILE"
 	done
 
@@ -478,8 +480,8 @@ build_libretro_generic_jni() {
 			cp -v ../libs/${a}/$LIBNAM.${FORMAT_EXT} $RARCH_DIST_DIR/${a}/${CORENAM} 2>&1 | tee -a "$LOGFILE"
 			cp -v ../libs/${a}/$LIBNAM.${FORMAT_EXT} $RARCH_DIST_DIR/${a}/${CORENAM}
 
-
 			RET=$?
+			[ "$RET" = "0" ] && BUILT_CORES="${BUILT_CORES} ${CORENAM}"
 			buildbot_handle_message "$RET" "$ENTRY_ID" "$core" "$jobid" "$LOGFILE"
 		done
 	done
@@ -829,7 +831,6 @@ if [ "${PLATFORM}" == "ios" ] && [ "${RA}" == "YES" ]; then
 		cd $WORK/$RADIR
 
 		echo "Packaging"
-
 	fi
 fi
 
@@ -980,7 +981,6 @@ if [ "${PLATFORM}" = "MINGW64" ] || [ "${PLATFORM}" = "MINGW32" ] || [ "${PLATFO
 		echo "configure command: $CONFIGURE"
 		${CONFIGURE}
 
-
 		echo "cleaning up..."
 		echo "CLEANUP CMD: ${HELPER} ${MAKE} ${ARGS} clean"
 		${HELPER} ${MAKE} ${ARGS} clean
@@ -993,7 +993,6 @@ if [ "${PLATFORM}" = "MINGW64" ] || [ "${PLATFORM}" = "MINGW32" ] || [ "${PLATFO
 		else
 			echo buildbot job: $jobid retroarch cleanup failed!
 		fi
-
 
 		if [ $? -eq 0 ]; then
 			echo buildbot job: $jobid retroarch configure success!
@@ -1086,8 +1085,11 @@ if [ "${PLATFORM}" = "psp1" ] && [ "${RA}" = "YES" ]; then
 	if [ "${BUILD}" == "YES" -o "${FORCE}" == "YES" -o "${FORCE_RETROARCH_BUILD}" == "YES" -o "${CORES_BUILT}" == "YES" ]; then
 
 		cd dist-scripts
-		rm *.a
-		cp -v $RARCH_DIST_DIR/*.a .
+		eval "set -- \$BUILT_CORES"
+		for core do
+			rm -f -- "$core"
+			cp -v -- "$RARCH_DIST_DIR/$core" .
+		done
 
 		time sh ./dist-cores.sh psp1 2>&1 | tee -a "$LOGFILE"
 
@@ -1119,8 +1121,11 @@ if [ "${PLATFORM}" == "wii" ] && [ "${RA}" == "YES" ]; then
 		touch $TMPDIR/built-frontend
 
 		cd dist-scripts
-		rm *.a
-		cp -v $RARCH_DIST_DIR/*.a .
+		eval "set -- \$BUILT_CORES"
+		for core do
+			rm -f -- "$core"
+			cp -v -- "$RARCH_DIST_DIR/$core" .
+		done
 
 		time sh ./dist-cores.sh wii 2>&1 | tee -a "$LOGFILE"
 
@@ -1149,10 +1154,13 @@ if [ "${PLATFORM}" == "wiiu" ] && [ "${RA}" == "YES" ]; then
 		touch $TMPDIR/built-frontend
 
 		cd dist-scripts
-		rm *.a
-		cp -v $RARCH_DIST_DIR/*.a .
-		cp -v $RARCH_DIST_DIR/../info/*.info .
-		cp -v ../media/assets/pkg/wiiu/*.png .
+		eval "set -- \$BUILT_CORES"
+		for core do
+			rm -f -- "$core"
+			cp -v -- "$RARCH_DIST_DIR/$core" .
+			cp -v -- "$RARCH_DIST_DIR/../info/${core%.*}.info" .
+			cp -v -- "../media/assets/pkg/wiiu/${core%.*}.png" .
+		done
 
 		time sh ./wiiu-cores.sh 2>&1 | tee -a "$LOGFILE"
 
@@ -1174,8 +1182,11 @@ if [ "${PLATFORM}" == "ngc" ] && [ "${RA}" == "YES" ]; then
 		touch $TMPDIR/built-frontend
 
 		cd dist-scripts
-		rm *.a
-		cp -v $RARCH_DIST_DIR/*.a .
+		eval "set -- \$BUILT_CORES"
+		for core do
+			rm -f -- "$core"
+			cp -v -- "$RARCH_DIST_DIR/$core" .
+		done
 
 		time sh ./dist-cores.sh ngc 2>&1 | tee -a "$LOGFILE"
 
@@ -1204,8 +1215,11 @@ if [ "${PLATFORM}" == "ctr" ] && [ "${RA}" == "YES" ]; then
 		touch $TMPDIR/built-frontend
 
 		cd dist-scripts
-		rm *.a
-		cp -v $RARCH_DIST_DIR/*.a .
+		eval "set -- \$BUILT_CORES"
+		for core do
+			rm -f -- "$core"
+			cp -v -- "$RARCH_DIST_DIR/$core" .
+		done
 
 		time sh ./dist-cores.sh ctr 2>&1 | tee -a "$LOGFILE"
 
@@ -1251,9 +1265,12 @@ if [ "${PLATFORM}" == "vita" ] && [ "${RA}" == "YES" ]; then
 		touch $TMPDIR/built-frontend
 
 		cd dist-scripts
-		rm *.a
-		cp -v $RARCH_DIST_DIR/*.a .
-		cp -v $RARCH_DIST_DIR/arm/*.a .
+		eval "set -- \$BUILT_CORES"
+		for core do
+			rm -f -- "$core"
+			cp -v -- "$RARCH_DIST_DIR/$core" .
+			cp -v -- "$RARCH_DIST_DIR/arm/$core" .
+		done
 
 		time sh ./dist-cores.sh vita 2>&1 | tee -a "$LOGFILE"
 
@@ -1300,8 +1317,11 @@ if [ "${PLATFORM}" == "ps3" ] && [ "${RA}" == "YES" ]; then
 		touch $TMPDIR/built-frontend
 
 		cd dist-scripts
-		rm *.a
-		cp -v $RARCH_DIST_DIR/*.a .
+		eval "set -- \$BUILT_CORES"
+		for core do
+			rm -f -- "$core"
+			cp -v -- "$RARCH_DIST_DIR/$core" .
+		done
 
 		time sh ./dist-cores.sh dex-ps3 2>&1 | tee -a $TMPDIR/log/${BOT}/${LOGDATE}/${LOGDATE}_RetroArch_${PLATFORM}_dex.log
 
@@ -1340,8 +1360,11 @@ if [ "${PLATFORM}" = "emscripten" ] && [ "${RA}" = "YES" ]; then
 		touch $TMPDIR/built-frontend
 
 		cd dist-scripts
-		rm *.a
-		cp -v $RARCH_DIST_DIR/*.bc .
+		eval "set -- \$BUILT_CORES"
+		for core do
+			rm -f -- "$core"
+			cp -v -- "$RARCH_DIST_DIR/$core" .
+		done
 
 		echo "BUILD CMD $HELPER ./dist-cores.sh emscripten" &> "$LOGFILE"
 		$HELPER ./dist-cores.sh emscripten 2>&1 | tee -a "$LOGFILE"
